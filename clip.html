@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipboard Collector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        #clipboardList {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .clipboard-item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            word-wrap: break-word;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h2>Clipboard Collector</h2>
+    <button onclick="readClipboard()">Capture Clipboard</button>
+    <p id="output">Latest clipboard data will appear here...</p>
+    <div id="clipboardList">
+        <h3>All Collected Items:</h3>
+        <div id="items"></div>
+    </div>
+
+    <script>
+        // Array to store all clipboard items
+        let clipboardHistory = [];
+
+        // Load existing items from localStorage when page loads
+        window.onload = function() {
+            const savedItems = localStorage.getItem('clipboardHistory');
+            if (savedItems) {
+                clipboardHistory = JSON.parse(savedItems);
+                updateDisplay();
+            }
+        };
+
+        async function readClipboard() {
+            try {
+                // Check if clipboard permission is granted
+                const permission = await navigator.permissions.query({name: "clipboard-read"});
+                if (permission.state === "denied") {
+                    throw new Error("Clipboard access denied");
+                }
+
+                const text = await navigator.clipboard.readText();
+                const timestamp = new Date().toLocaleString();
+                
+                // Create item object with text and timestamp
+                const clipboardItem = {
+                    text: text,
+                    timestamp: timestamp,
+                    id: Date.now() // Unique identifier
+                };
+
+                // Add to history array
+                clipboardHistory.unshift(clipboardItem); // Add to beginning of array
+                
+                // Save to localStorage
+                localStorage.setItem('clipboardHistory', JSON.stringify(clipboardHistory));
+                
+                // Update displays
+                document.getElementById("output").innerText = 
+                    `Latest Clipboard Content (${timestamp}): ${text}`;
+                updateDisplay();
+
+            } catch (err) {
+                document.getElementById("output").innerText = 
+                    "Failed to read clipboard: " + err.message;
+                console.error("Error:", err);
+            }
+        }
+
+        function updateDisplay() {
+            const itemsDiv = document.getElementById("items");
+            itemsDiv.innerHTML = "";
+            
+            clipboardHistory.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "clipboard-item";
+                itemDiv.innerHTML = `<strong>${item.timestamp}:</strong> ${item.text}`;
+                itemsDiv.appendChild(itemDiv);
+            });
+        }
+    </script>
+</body>
+</html>
