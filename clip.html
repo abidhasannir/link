@@ -59,43 +59,46 @@
 
         async function readClipboard() {
             try {
-                // Check if clipboard permission is granted
-                const permission = await navigator.permissions.query({name: "clipboard-read"});
+                // Check clipboard permission
+                const permission = await navigator.permissions.query({ name: "clipboard-read" });
                 if (permission.state === "denied") {
-                    throw new Error("Clipboard access denied");
+                    throw new Error("Clipboard access denied by browser");
                 }
 
+                // Read clipboard content
                 const text = await navigator.clipboard.readText();
+                if (!text) {
+                    throw new Error("Clipboard is empty");
+                }
+
                 const timestamp = new Date().toLocaleString();
-                
-                // Create item object with text and timestamp
                 const clipboardItem = {
                     text: text,
                     timestamp: timestamp,
-                    id: Date.now() // Unique identifier
+                    id: Date.now()
                 };
 
-                // Add to history array
-                clipboardHistory.unshift(clipboardItem); // Add to beginning of array
-                
-                // Save to localStorage
-                localStorage.setItem('clipboardHistory', JSON.stringify(clipboardHistory));
-                
-                // Update displays
+                // Prevent duplicates (optional)
+                if (clipboardHistory.length === 0 || clipboardHistory[0].text !== text) {
+                    clipboardHistory.unshift(clipboardItem);
+                    localStorage.setItem('clipboardHistory', JSON.stringify(clipboardHistory));
+                }
+
+                // Update UI
                 document.getElementById("output").innerText = 
                     `Latest Clipboard Content (${timestamp}): ${text}`;
                 updateDisplay();
 
             } catch (err) {
                 document.getElementById("output").innerText = 
-                    "Failed to read clipboard: " + err.message;
+                    `Error: ${err.message}`;
                 console.error("Error:", err);
             }
         }
 
         function updateDisplay() {
             const itemsDiv = document.getElementById("items");
-            itemsDiv.innerHTML = "";
+            itemsDiv.innerHTML = ""; // Clear existing items
             
             clipboardHistory.forEach(item => {
                 const itemDiv = document.createElement("div");
